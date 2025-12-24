@@ -64,12 +64,14 @@ export default class Game {
 
         // Determine Home/Away objects
         // matchData has references to team objects
-        
+        const isPlayerHome = (matchData.home.id === this.career.userTeamId);
+
         this.matchScene = new MatchScene(
             this.canvas,
             matchData.home,
             matchData.away,
-            (score1, score2) => this.onMatchEnd(score1, score2, matchData)
+            (score1, score2) => this.onMatchEnd(score1, score2, matchData),
+            isPlayerHome // New Arguement
         );
     }
 

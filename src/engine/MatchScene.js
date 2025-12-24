@@ -7,20 +7,27 @@ const GOAL_HEIGHT = 160;   // Height from ground
 const GROUND_Y = 400;
 
 export default class MatchScene {
-    constructor(canvas, homeTeam, awayTeam, onMatchEnd) {
+    constructor(canvas, homeTeam, awayTeam, onMatchEnd, isPlayerHome = true) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.width = canvas.width;
         this.height = canvas.height;
         this.onMatchEnd = onMatchEnd;
+        this.homeTeam = homeTeam;
+        this.awayTeam = awayTeam;
+        this.lastScorerName = '';
+        this.isPlayerHome = isPlayerHome;
 
         this.input = new Input();
 
-        // Spawn points slightly more centered
-        // Player 1: Home, Faces Right (1)
-        this.player1 = new Player(150, 300, homeTeam.colors[0], true, 1); 
-        // Player 2: Away, Faces Left (-1)
-        this.player2 = new Player(650, 300, awayTeam.colors[0], null, -1);
+        // Spawn points
+        // Player 1 (Home, Left): Controlled if isPlayerHome is true.
+        const p1Controls = isPlayerHome ? true : null;
+        this.player1 = new Player(150, 300, homeTeam.colors[0], p1Controls, 1); 
+        
+        // Player 2 (Away, Right): Controlled if isPlayerHome is false.
+        const p2Controls = !isPlayerHome ? true : null;
+        this.player2 = new Player(650, 300, awayTeam.colors[0], p2Controls, -1);
         this.player2.facingRight = false;
 
         this.ball = new Ball(400, 200);
@@ -28,7 +35,7 @@ export default class MatchScene {
         this.score1 = 0;
         this.score2 = 0;
         
-        this.timeLeft = 120; // 2 mins
+        this.timeLeft = 90; // 1 min y 30 segundos
         this.gameTime = 0;
         this.isRunning = false;
         
@@ -79,8 +86,14 @@ export default class MatchScene {
         }
 
         // Updates
-        this.player1.update(this.input);
-        this.player2.updateAI(this.ball, this.player1);
+        if (this.isPlayerHome) {
+            this.player1.update(this.input);
+            this.player2.updateAI(this.ball, this.player1, 800); // P2 defends Right (800)
+        } else {
+            this.player1.updateAI(this.ball, this.player2, 0);   // P1 defends Left (0)
+            this.player2.update(this.input);
+        }
+        
         this.ball.update();
 
         // Physics Resolution
@@ -564,12 +577,14 @@ export default class MatchScene {
         if (this.ball.y > crossY && this.ball.x + this.ball.radius < GOAL_WIDTH) {
             this.score2++;
             this.goalOverlayTimer = 2; 
+            this.lastScorerName = this.awayTeam.name;
         }
 
         // Right Goal (Player 1 scores)
          if (this.ball.y > crossY && this.ball.x - this.ball.radius > this.width - GOAL_WIDTH) {
             this.score1++;
             this.goalOverlayTimer = 2; 
+            this.lastScorerName = this.homeTeam.name;
         }
     }
 
@@ -679,9 +694,14 @@ export default class MatchScene {
         if(this.goalOverlayTimer > 0) {
             this.ctx.fillStyle = 'rgba(0,0,0,0.6)';
             this.ctx.fillRect(0,0,this.width, this.height);
+            this.ctx.fillStyle = 'black'; // Shadow/Stroke
+            this.ctx.font = 'bold 60px sans-serif';
+            this.ctx.fillText("GOL DE", 402, 252);
+            this.ctx.fillText(this.lastScorerName.toUpperCase(), 402, 332);
+            
             this.ctx.fillStyle = 'gold';
-            this.ctx.font = 'bold 80px sans-serif';
-            this.ctx.fillText("GOL!", 400, 250);
+            this.ctx.fillText("GOL DE", 400, 250);
+            this.ctx.fillText(this.lastScorerName.toUpperCase(), 400, 330);
         }
     }
 

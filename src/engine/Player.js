@@ -27,6 +27,9 @@ export default class Player extends Entity {
         this.lookDirection = lookDirection; // 1 (Right) or -1 (Left)
         this.image = new Image();
         this.image.src = 'img/Cabeza.png';
+        
+        this.footImage = new Image();
+        this.footImage.src = 'img/Botin.png';
     }
 
     update(input) {
@@ -150,48 +153,58 @@ export default class Player extends Entity {
         this.footVy = this.vy + vyTangential;
     }
     
-    updateAI(ball, opponent) {
-        // ... AI Code (Simplified to keep file short, or preserve?)
-        // Preserving AI Logic from previous edit manually or just referencing? 
-        // I must allow replacement of the whole file content so I need to put AI back.
+    updateAI(ball, opponent, ownGoalX) {
+        // Determine side based on goal position
+        // If goal is roughly 0, we are Left Player (Defending Left).
+        // If goal is roughly 800, we are Right Player (Defending Right).
+        const isRightPlayer = (ownGoalX > 400);
+        const defenseSide = isRightPlayer ? 1 : -1; // 1 means Goal is on Right
         
-        const myGoalX = 800;
-        const idealX = ball.x + 40; 
+        // Ideal Position: Between Ball and Goal
+        // If Right Player: Ball.x + Buffer 
+        // If Left Player: Ball.x - Buffer
+        const buffer = 40;
+        const idealX = ball.x + (buffer * defenseSide); 
+        
         let moveDir = 0; 
         if (this.x < idealX - 10) moveDir = 1; 
         else if (this.x > idealX + 10) moveDir = -1; 
-        if (ball.x > this.x) moveDir = 1; 
+        
+        // Always face the ball? Or face opponent goal?
+        // Usually face opponent goal (Attack dir).
+        // If Right Player, Attack Left (MoveDir -1).
+        // If Left Player, Attack Right (MoveDir 1).
+        // But logic below sets facingRight based on movement?
+        // Let's keep movement facing logic.
 
         if (moveDir === 1) { this.vx = this.speed; this.facingRight = true; } 
         else if (moveDir === -1) { this.vx = -this.speed; this.facingRight = false; } 
         else { this.vx = 0; }
 
+        // Jump if close and ball high?
         if (Math.abs(ball.x - this.x) < 50 && ball.y < this.y - 50 && this.isGrounded) this.vy = this.jumpForce;
         
-        // Random Jump (Agression/Defense)
-        // Try to block lob shots or just celebrate?
+        // Random Jump
         if (this.isGrounded && Math.random() < 0.01) {
              this.vy = this.jumpForce;
         }
         
-        // Defensive Movement?
-        // If ball is far behind (towards own goal), run back fast.
-        const distOwnGoal = Math.abs(this.x - myGoalX); // myGoalX is 800 roughly (Right side)
-        // Actually Player 2 is away, goal is Right side? No.
-        // MatchScene spawns P2 at 650. Home is Left (0). Away is Right (800).
-        // P2 Defends Right Goal (800). Attacks Left Goal (0).
-        // So P2 wants ball at 0.
-        // If ball.x > this.x (Ball is behind me / closer to my goal), Panic.
+        // Panic / Defensive Reaction
+        // If Ball is "Behind" me (closer to my goal than me)
+        const ballBehind = isRightPlayer ? (ball.x > this.x) : (ball.x < this.x);
         
-        if (ball.x > this.x && Math.random() < 0.05) {
-             // Move towards ball aggressively
+        if (ballBehind && Math.random() < 0.05) {
+             // Move towards ball aggressively (this is covered by idealX logic partially, 
+             // but idealX puts us "in front". If behind, idealX pushes us back?)
+             // Yes, if ball is 790 and I am 700. Ideal is 830. I run right. Correct.
         }
         
-        // Random Pause (Don't be a robot)
+        // Pause
         if (Math.random() < 0.02) {
             this.vx = 0;
         }
 
+        // Jump over opponent?
         if (Math.abs(opponent.x - this.x) < 60 && Math.abs(ball.x - this.x) < 40 && this.isGrounded) {
             if(Math.random()<0.02) this.vy = this.jumpForce;
         }
@@ -199,8 +212,16 @@ export default class Player extends Entity {
         const dBall = Math.sqrt(Math.pow(ball.x - this.x, 2) + Math.pow(ball.y - this.y, 2));
         let shouldKick = false;
         if (dBall < 60 && this.kickCooldown <= 0) {
-            if (this.facingRight === false) shouldKick = true; 
-            if (ball.x > 700) shouldKick = true;
+            // Kick if facing correct way (Towards Opponent Goal)
+            // Right Player -> Kicks Left (facingRight false)
+            // Left Player -> Kicks Right (facingRight true)
+            if (isRightPlayer) {
+                 if (this.facingRight === false) shouldKick = true;
+                 if (ball.x > 700) shouldKick = true; // Clear line
+            } else {
+                 if (this.facingRight === true) shouldKick = true;
+                 if (ball.x < 100) shouldKick = true; // Clear line
+            }
         }
         if (shouldKick && Math.random() < 0.1) this.kick();
 
@@ -265,38 +286,36 @@ export default class Player extends Entity {
         // Remove the extra global rotation that was messing things up
         // ctx.rotate(rotation + Math.PI/2);  <-- DELETE THIS 
 
-        // Draw Shark Fin
-        // Pivot is Ankle (0,0).
-        // Toe is Forward (Y+ in this rotated space? or X+?)
-        // If Rotated +90:
-        // Leg is X axis? No.
-        // Let's draw assuming Y-axis is Leg (Up).
-        // Then Toe is X+.
-        
-        const L = this.footRadius * 2.2; // Length
-        const H = this.footRadius * 1.5; // Height at heel
-        
-        ctx.beginPath();
-        // 1. Start at Heel Bottom ( -0.2L, 0 )
-        ctx.moveTo(-L*0.2, 0);
-        // 2. Line to Toe ( L*0.8, 0 ) -> Flat Sole
-        ctx.lineTo(L*0.8, 0);
-        // 3. Curve back to Heel Top ( -0.2L, -H/2 )?
-        // "Scoop" Curve: Control Point low.
-        // Toe is (L*0.8, 0). Heel Top is (-0.2L, -H/1.5).
-        // Control Point: (Mid X, Low Y).
-        const heelTopX = -L*0.2;
-        const heelTopY = -H * 0.8;
-        
-        // Quadratic Curve
-        // cpX = near toe but slightly back? 
-        // cpY = near sole?
-        ctx.quadraticCurveTo(L*0.4, -H*0.1, heelTopX, heelTopY);
-        
-        // 4. Close Back
-        ctx.lineTo(-L*0.2, 0);
-        
-        ctx.fill();
+        // Draw Boot Image
+        if (this.footImage.complete && this.footImage.naturalWidth > 0) {
+            // Aspect Ratio
+            const ratio = this.footImage.naturalWidth / this.footImage.naturalHeight;
+            const h = this.footRadius * 2.0; // Height based on radius (approx 24px)
+            const w = h * ratio;
+            
+            // Draw centered on Ankle? 
+            // Better: Ankle is usually near the top-back of the boot.
+            // If we draw centered (-w/2, -h/2), the ankle is in the middle of the shoe.
+            // Let's shift it slightly: 
+            // X: Shift drawing left (-w * 0.3) so ankle is at +0.2w (Heel)? No.
+            // If drawing at -w/2, center is 0.
+            // Let's just center it for now to be safe, user asked to "adapt size".
+            
+            ctx.drawImage(this.footImage, -w/2, -h/2, w, h);
+        } else {
+            // Fallback: Shark Fin
+            const L = this.footRadius * 2.2; 
+            const H = this.footRadius * 1.5; 
+            ctx.beginPath();
+            ctx.moveTo(-L*0.2, 0);
+            ctx.lineTo(L*0.8, 0);
+            const heelTopX = -L*0.2;
+            const heelTopY = -H * 0.8;
+            ctx.quadraticCurveTo(L*0.4, -H*0.1, heelTopX, heelTopY);
+            ctx.lineTo(-L*0.2, 0);
+            ctx.fill();
+        }
+
         ctx.restore();
         
         // Draw Body (The "Head") using Sprite
