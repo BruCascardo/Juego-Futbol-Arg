@@ -6,6 +6,9 @@ export class League {
         this.schedule = []; // Array of rounds (Dates)
         this.currentRoundIndex = 0;
         this.standings = {}; // Map teamId -> stats
+        
+        this.promotionCount = config.promotionCount || 0;
+        this.relegationCount = config.relegationCount || 0;
 
         this.initStandings();
     }
@@ -173,5 +176,14 @@ export class League {
 
     getBottomTeams(count) {
         return this.getStandingsArray().slice(-count).map(s => s.team);
+    }
+
+    isPromotionPosition(index) {
+        return index < this.promotionCount;
+    }
+
+    isRelegationPosition(index) {
+        // Relegation is usually the last N teams
+        return index >= this.teams.length - this.relegationCount;
     }
 }

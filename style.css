@@ -1,10 +1,23 @@
 :root {
-    --primary-color: #3498db;
-    --secondary-color: #2ecc71;
-    --accent-color: #f1c40f;
-    --text-color: #ecf0f1;
-    --bg-color: #2c3e50;
-    --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --primary: #39ff14;
+    /* Neon Green */
+    --primary-dark: #2ecc71;
+    --secondary: #00f3ff;
+    /* Electric Blue */
+    --accent: #ff0055;
+    /* Hot Pink */
+
+    --bg-dark: #0a0a12;
+    --bg-panel: rgba(20, 20, 30, 0.85);
+
+    --text-main: #ffffff;
+    --text-muted: #a0a0b0;
+
+    --font-heading: 'Teko', sans-serif;
+    --font-body: 'Roboto', sans-serif;
+
+    --glow: 0 0 10px rgba(57, 255, 20, 0.5);
+    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 * {
@@ -12,38 +25,77 @@
     margin: 0;
     padding: 0;
     user-select: none;
-    /* Prevent text selection during play */
 }
 
 body {
-    background-color: #1a1a1a;
+    background-color: var(--bg-dark);
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    font-family: var(--font-family);
+    font-family: var(--font-body);
     overflow: hidden;
+    color: var(--text-main);
+}
+
+/* Arcade Scanline Overlay */
+body::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 100;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+}
+
+/* Background Animation */
+body::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 50% 50%, #2b32b2 0%, #1488cc 20%, #000 80%);
+    opacity: 0.6;
+    z-index: -1;
+    animation: bgSpin 20s linear infinite;
+}
+
+@keyframes bgSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 #game-container {
     position: relative;
     width: 100%;
     height: 100%;
-    margin: 0 auto;
-    background-color: #000;
     display: flex;
     justify-content: center;
     align-items: center;
+    background: transparent;
 }
 
+/* Keep canvas logic */
 #game-canvas {
-    /* Keep aspect ratio but fit in screen */
     width: auto;
     height: 100%;
-    max-width: 100%;
     aspect-ratio: 16/9;
-    display: block;
-    background-color: #4a6;
+    background-color: #333;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+    display: none;
+    /* Hidden by default until game starts */
 }
 
 #ui-layer {
@@ -53,51 +105,354 @@ body {
     width: 100%;
     height: 100%;
     pointer-events: none;
-    /* Let clicks pass through to canvas by default */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    z-index: 10;
 }
 
-/* Enable pointer events for actual UI elements inside the layer */
 #ui-layer>* {
     pointer-events: auto;
 }
 
-/* Utility Classes for UI */
+/* Generic Screen Container */
 .screen {
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    color: white;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    text-align: center;
+    background: rgba(10, 10, 20, 0.6);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.5s ease-out;
 }
 
+/* Typography */
+h1 {
+    font-family: var(--font-heading);
+    font-size: 6rem;
+    text-transform: uppercase;
+    line-height: 0.9;
+    background: linear-gradient(to bottom, #ffffff 0%, #a4e5f9 50%, #2b32b2 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(46, 204, 113, 0.5);
+    margin-bottom: 2rem;
+    letter-spacing: 4px;
+    filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.8));
+}
+
+h2 {
+    font-family: var(--font-heading);
+    font-size: 3.5rem;
+    color: var(--primary);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    text-shadow: 0 0 15px var(--primary);
+}
+
+h3 {
+    font-family: var(--font-heading);
+    font-size: 2rem;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+}
+
+p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+
+/* Modern Buttons */
 .btn {
-    background: var(--primary-color);
-    border: none;
-    padding: 10px 20px;
-    color: white;
-    font-size: 1.2rem;
-    cursor: pointer;
+    background: transparent;
+    color: var(--text-main);
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    text-transform: uppercase;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 60px;
     margin: 10px;
-    border-radius: 5px;
-    transition: transform 0.1s;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    min-width: 300px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
 }
 
 .btn:hover {
-    transform: scale(1.05);
-    filter: brightness(1.1);
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #000;
+    box-shadow: 0 0 20px var(--primary);
+    transform: translateY(-2px) scale(1.02);
 }
 
-.title {
-    font-size: 3rem;
+.btn:hover::before {
+    left: 100%;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+/* Secondary Button Style */
+.btn-secondary {
+    font-size: 1.8rem;
+    border-color: rgba(255, 255, 255, 0.05);
+    min-width: 250px;
+}
+
+.btn-secondary:hover {
+    background: var(--secondary);
+    border-color: var(--secondary);
+    box-shadow: 0 0 20px var(--secondary);
+    color: #000;
+}
+
+/* Form Elements */
+select {
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 1.2rem;
+    font-family: var(--font-body);
+    width: 300px;
     margin-bottom: 20px;
-    color: var(--accent-color);
-    text-shadow: 2px 2px 0 #000;
+    outline: none;
+}
+
+select:focus {
+    border-color: var(--primary);
+}
+
+/* Tables */
+.tables-container {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.league-table {
+    background: var(--bg-panel);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: var(--shadow-card);
+    flex: 1;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Compact Table */
+th {
+    text-align: left;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    /* Reduced from 1rem */
+    color: var(--secondary);
+    padding-bottom: 2px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+td {
+    padding: 1px 0;
+    /* Reduced from 3px */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.75rem;
+    /* Reduced from 0.8rem */
+}
+
+/* --- Dashboard Specific --- */
+.dashboard-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    gap: 0;
+}
+
+/* Left: Standings */
+.dashboard-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    /* Reduced from 40px */
+    background: rgba(0, 0, 0, 0.3);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 35%;
+}
+
+.league-header {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    /* Reduced from 20px */
+    position: relative;
+    user-select: none;
+}
+
+.league-header:hover h3 {
+    color: var(--primary);
+}
+
+.league-header .arrow {
+    font-size: 1.2rem;
+    color: var(--secondary);
+    transition: transform 0.3s;
+}
+
+.league-header.active .arrow {
+    transform: rotate(180deg);
+}
+
+/* Custom Dropdown (fake select) */
+.league-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: var(--bg-dark);
+    border: 1px solid var(--primary);
+    border-radius: 5px;
+    z-index: 100;
+    display: none;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
+}
+
+.league-dropdown.show {
+    display: block;
+}
+
+.league-option {
+    padding: 10px 15px;
+    /* Reduced padding */
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    /* Reduced from 1.5rem */
+}
+
+.league-option:hover {
+    background: var(--primary);
+    color: black;
+}
+
+.table-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Scrollbar styling */
+.table-scroll-area::-webkit-scrollbar {
+    width: 8px;
+}
+
+.table-scroll-area::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.table-scroll-area::-webkit-scrollbar-thumb {
+    background: var(--primary-dark);
+    border-radius: 4px;
+}
+
+/* Right: Match Info */
+.dashboard-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    /* Reduced padding */
+    text-align: center;
+    background: radial-gradient(circle at center, rgba(46, 204, 113, 0.05), transparent 70%);
+}
+
+.match-card {
+    background: var(--bg-panel);
+    padding: 30px;
+    /* Reduced from 40px */
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+    margin-bottom: 20px;
+    /* Reduced margin */
+    width: 80%;
+}
+
+.versus {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    /* Reduced from 3rem */
+    color: var(--accent);
+    margin: 15px 0;
+}
+
+/* HUD Overlay - Minimalist */
+.hud-panel {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 10px 30px;
+    border-radius: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }

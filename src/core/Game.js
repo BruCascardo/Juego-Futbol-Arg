@@ -33,8 +33,8 @@ export default class Game {
 
     showCareerSetup() {
         this.router.navigateTo(Views.CareerSetup, {
-            onStart: (teamId, teamListA, teamListB) => {
-                this.career.start(teamId, teamListA, teamListB);
+            onStart: (teamId) => {
+                this.career.start(teamId);
                 this.showDashboard();
             }
         });

@@ -8,7 +8,7 @@ export default class Player extends Entity {
         this.friction = 0.85;
         
         this.speed = 4.5; // Slower pace (was 6)
-        this.jumpForce = -10.5; // Reduced to ~10.5 for ~110px height (Goal is 160)
+        this.jumpForce = -8.0; // Target ~64px rise. Top reaches ~124px (3/4 goal).
         this.isGrounded = false;
         this.facingRight = true;
 
@@ -349,6 +349,27 @@ export default class Player extends Entity {
         }
         
         ctx.restore();
+        
+        // --- SELECTION INDICATOR (FIFA Triangle) ---
+        if (this.controls) {
+            ctx.save();
+            ctx.globalAlpha = 0.7; // Semi-transparent
+            ctx.fillStyle = this.color; // Use Team Color
+            
+            // Triangle pointing down
+            // Position: Above head (this.y - radius - offset)
+            const indY = this.y - this.radius - 20; 
+            const indSize = 10;
+            
+            ctx.beginPath();
+            ctx.moveTo(this.x - indSize, indY - indSize); // Top Left
+            ctx.lineTo(this.x + indSize, indY - indSize); // Top Right
+            ctx.lineTo(this.x, indY + 5);                 // Bottom Point
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        }
         
         // Debug Hitbox Visualization (Optional - comment out later)
         // ctx.strokeStyle = 'cyan';

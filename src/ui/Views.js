@@ -1,4 +1,4 @@
-import { TEAMS } from '../data/teams.js';
+import { TEAMS } from '../data/teams.js?v=2';
 
 // --- Helpers ---
 function createEl(tag, className, text = '') {
@@ -12,18 +12,39 @@ function createEl(tag, className, text = '') {
 
 export const MainMenu = ({ onNewGame, onContinue, hasSave }) => {
     const container = createEl('div', 'screen');
-    const title = createEl('h1', 'title', 'FÚTBOL ARGENTINO ARCADE');
-    container.appendChild(title);
+    
+    // Background decoration (optional, could be added via CSS)
+    
+    const content = createEl('div', 'main-menu-content');
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.alignItems = 'center';
+    content.style.zIndex = '2';
 
-    const btnNew = createEl('button', 'btn', 'Nueva Carrera');
+    const title = createEl('h1', 'title', 'FÚTBOL\nARGENTINO\nARCADE');
+    title.style.whiteSpace = 'pre-line'; // Allow newlines
+    title.style.textAlign = 'center';
+    content.appendChild(title);
+
+    const btnNew = createEl('button', 'btn', 'NUEVA CARRERA');
     btnNew.onclick = onNewGame;
-    container.appendChild(btnNew);
+    
+    // Add icon or effect if needed
+    content.appendChild(btnNew);
 
     if (hasSave) {
-        const btnContinue = createEl('button', 'btn', 'Continuar Carrera');
+        const btnContinue = createEl('button', 'btn btn-secondary', 'CONTINUAR');
         btnContinue.onclick = onContinue;
-        container.appendChild(btnContinue);
+        content.appendChild(btnContinue);
     }
+    
+    const footer = createEl('p', 'footer', 'v1.0.0 - Desarrollado por Antigravity');
+    footer.style.marginTop = '40px';
+    footer.style.opacity = '0.5';
+    footer.style.fontSize = '0.9rem';
+    content.appendChild(footer);
+
+    container.appendChild(content);
 
     return container;
 };
@@ -50,32 +71,7 @@ export const CareerSetup = ({ onStart }) => {
     const btnStart = createEl('button', 'btn', 'Comenzar Temporada');
     btnStart.onclick = () => {
         const teamId = select.value;
-        const mainTeam = TEAMS.find(t => t.id === teamId);
-        
-        // Auto-fill leagues for simplicity based on ratings or just top 20 / bottom 30
-        // We need 20 for A and 20 for B. Total 50 teams. 10 left out.
-        // Let's force Main Team into A or B depending on rating? No, user chooses. 
-        // User is always placed in Liga A for simplicity? Or let logic handle it.
-        // Requested: "User creates career, chooses team... manually selects 20 for A and 20 for B"
-        // That's complex UI. Let's auto-generate based on Rating for now to save complexity, 
-        // but ensure User Team is in A if high rating, B if low?
-        // Let's just put Top 20 rated in A, Next 20 in B. If user is in C (left out), force swap with last of B.
-        
-        const sortedByRating = [...TEAMS].sort((a,b) => b.rating - a.rating);
-        let leagueA = sortedByRating.slice(0, 20);
-        let leagueB = sortedByRating.slice(20, 40);
-        
-        // Ensure user is in.
-        const userInA = leagueA.find(t => t.id === teamId);
-        const userInB = leagueB.find(t => t.id === teamId);
-        
-        if (!userInA && !userInB) {
-            // User is in the "left out" group. Swap with last of B.
-            leagueB.pop();
-            leagueB.push(mainTeam);
-        }
-
-        onStart(teamId, leagueA, leagueB);
+        onStart(teamId);
     };
     container.appendChild(btnStart);
 
@@ -83,92 +79,173 @@ export const CareerSetup = ({ onStart }) => {
 };
 
 export const Dashboard = ({ team, leagueA, leagueB, nextMatch, onPlayMatch, onNextWeek, currentSeason }) => {
-    const container = createEl('div', 'screen');
-    container.style.justifyContent = 'flex-start'; // Top align
-    container.style.padding = '20px';
+    const container = createEl('div', 'screen dashboard-container');
 
-    // Header
-    const header = createEl('div', 'header');
-    header.innerHTML = `<h2>${team.name} - Temp. ${currentSeason}</h2>`;
-    container.appendChild(header);
+    // --- LEFT SIDE: Standings ---
+    const leftPanel = createEl('div', 'dashboard-left');
+    
+    // Header Wrapper for custom dropdown logic
+    const headerWrapper = createEl('div', 'league-header');
+    const headerTitle = createEl('h3', '', ''); // Set initially
+    const headerArrow = createEl('span', 'arrow', '▼');
+    headerWrapper.appendChild(headerTitle);
+    headerWrapper.appendChild(headerArrow);
 
-    // Current Status
+    const dropdown = createEl('div', 'league-dropdown');
+    const optionA = createEl('div', 'league-option', leagueA.name);
+    const optionB = createEl('div', 'league-option', leagueB.name);
+    dropdown.appendChild(optionA);
+    dropdown.appendChild(optionB);
+
+    headerWrapper.appendChild(dropdown);
+    leftPanel.appendChild(headerWrapper);
+
+    // Table Container (Scrollable)
+    const tableContainer = createEl('div', 'table-scroll-area');
+    leftPanel.appendChild(tableContainer);
+
+    // Logic for Switching
+    // Default to Team's League
+    let currentLeague = leagueA.teams.find(t => t.id === team.id) ? leagueA : leagueB;
+    
+    const renderContent = () => {
+        headerTitle.textContent = currentLeague.name;
+        tableContainer.innerHTML = '';
+        tableContainer.appendChild(renderTableContent(currentLeague)); // Just the table content, not container
+    };
+
+    // Toggle Dropdown
+    headerWrapper.onclick = (e) => {
+        // Prevent closing when clicking options instantly
+        e.stopPropagation();
+        dropdown.classList.toggle('show');
+        headerWrapper.classList.toggle('active');
+    };
+    
+    // Close dropdown on outside click
+    window.onclick = () => {
+        dropdown.classList.remove('show');
+        headerWrapper.classList.remove('active');
+    };
+
+    optionA.onclick = () => {
+        currentLeague = leagueA;
+        renderContent();
+    };
+
+    optionB.onclick = () => {
+        currentLeague = leagueB;
+        renderContent();
+    };
+
+    renderContent(); // Initial render
+    container.appendChild(leftPanel);
+
+    // --- RIGHT SIDE: Match Info ---
+    const rightPanel = createEl('div', 'dashboard-right');
+
+    const teamHeader = createEl('h2', '', `${team.name}`);
+    teamHeader.style.fontSize = '3rem';
+    rightPanel.appendChild(teamHeader);
+    
+    const seasonInfo = createEl('p', '', `Temporada ${currentSeason}`);
+    seasonInfo.style.marginBottom = '30px';
+    rightPanel.appendChild(seasonInfo);
+
     if (nextMatch) {
          const vs = nextMatch.home.id === team.id ? nextMatch.away : nextMatch.home;
-         const matchInfo = createEl('div', 'match-info');
-         matchInfo.innerHTML = `<h3>Próximo Partido</h3><p>vs ${vs.name} (${vs.rating})</p>`;
-         container.appendChild(matchInfo);
          
-         const btnPlay = createEl('button', 'btn', 'Jugar Partido');
+         const card = createEl('div', 'match-card');
+         card.innerHTML = `
+            <h3>PRÓXIMO PARTIDO</h3>
+            <div class="versus">VS</div>
+            <h2 style="color:white; text-shadow:none;">${vs.name}</h2>
+            <p style="margin-top:10px;">Rating: ${vs.rating}</p>
+         `;
+         rightPanel.appendChild(card);
+         
+         const btnPlay = createEl('button', 'btn', 'JUGAR');
          btnPlay.onclick = onPlayMatch;
-         container.appendChild(btnPlay);
+         rightPanel.appendChild(btnPlay);
     } else {
-        const info = createEl('div', 'info', 'Temporada Finalizada');
-        container.appendChild(info);
+        const info = createEl('div', 'info', 'TEMPORADA FINALIZADA');
+        info.style.fontSize = '2rem';
+        info.style.marginBottom = '30px';
+        rightPanel.appendChild(info);
         
-        const btnNext = createEl('button', 'btn', 'Siguiente Temporada');
-        btnNext.onclick = onNextWeek; // Re-uses next week logic to trigger end season flow
-        container.appendChild(btnNext);
+        const btnNext = createEl('button', 'btn', 'SIGUIENTE TEMP.');
+        btnNext.onclick = onNextWeek; 
+        rightPanel.appendChild(btnNext);
     }
 
-    // Tablas
-    const tablesContainer = createEl('div', 'tables-container');
-    tablesContainer.style.display = 'flex';
-    tablesContainer.style.gap = '20px';
-    tablesContainer.style.width = '100%';
-    tablesContainer.style.justifyContent = 'center';
-    
-    tablesContainer.appendChild(renderTable(leagueA, "Liga Profesional"));
-    tablesContainer.appendChild(renderTable(leagueB, "Primera Nacional"));
-    
-    container.appendChild(tablesContainer);
+    container.appendChild(rightPanel);
 
     return container;
 };
 
-function renderTable(league, title) {
-    const div = createEl('div', 'league-table');
-    div.innerHTML = `<h3>${title}</h3>`;
-    div.style.fontSize = '0.8rem';
-    div.style.textAlign = 'left';
-
+// Internal helper for just table content
+function renderTableContent(league) {
     const table = document.createElement('table');
-    table.style.width = '300px';
+    table.style.width = '100%'; 
     table.style.borderCollapse = 'collapse';
+    
+    // Header
     table.innerHTML = `
-        <tr style="border-bottom: 1px solid #fff">
-            <th>Pos</th>
-            <th>Club</th>
-            <th>Pts</th>
-            <th>PJ</th>
-            <th>DG</th>
+        <tr style="border-bottom: 2px solid rgba(255,255,255,0.1)">
+            <th style="width: 30px;">Pos</th>
+            <th style="width: auto;">Club</th>
+            <th style="width: 50px; font-size: 1.1rem;">Pts</th>
+            <th style="width: 40px;">PJ</th>
+            <th style="width: 40px;">DG</th>
         </tr>
     `;
     
     const standings = league.getStandingsArray();
     standings.forEach((row, index) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${row.team.shortName}</td>
-            <td>${row.points}</td>
-            <td>${row.played}</td>
-            <td>${row.gd}</td>
-        `;
-        // Top/Bottom highlight
-        // Simple logic for colors
-        let color = 'white';
-        // Liga A: Bottom 3 Red
-        if (league.level === 1 && index >= 17) color = '#e74c3c';
-        // Liga B: Top 3 Green
-        if (league.level === 2 && index <= 2) color = '#2ecc71';
+        
+        let color = '#ffffff'; // Default white
+        let textShadow = 'none';
+        let fontWeight = 'normal';
+
+        // Logic for Colors
+        if (index === 0) {
+            // Champion / Leader -> Gold
+            color = '#ffd700';
+            textShadow = '0 0 10px rgba(255, 215, 0, 0.5)';
+            fontWeight = 'bold';
+        } else {
+            // Specific League Rules
+            if (league.level === 1) { // Liga Profesional
+                // Relegation (Last 3)
+                if (index >= standings.length - 3) color = '#e74c3c'; // Red (Relegation last 3)
+            } else if (league.level === 2) { // Primera Nacional
+                // Promotion (2nd and 3rd, since 1st is Gold)
+                if (index <= 2) color = '#2ecc71'; // Green
+            }
+        }
         
         tr.style.color = color;
+        tr.style.textShadow = textShadow;
+        tr.style.fontWeight = fontWeight;
+
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td style="padding: 0;">
+                <div style="display: flex; align-items: center; padding-left: 5px;">
+                    <img src="${row.team.logo || ''}" style="width: 24px; height: 24px; object-fit: contain; margin-right: 8px;">
+                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;">${row.team.name}</span>
+                </div>
+            </td>
+            <td style="font-weight: bold; font-size: 1.1rem; vertical-align: middle;">${row.points}</td>
+            <td style="vertical-align: middle;">${row.played}</td>
+            <td style="vertical-align: middle;">${row.gd}</td>
+        `;
+
         table.appendChild(tr);
     });
 
-    div.appendChild(table);
-    return div;
+    return table;
 }
 
 export const MatchResults = ({ homeScore, awayScore, onContinue }) => {

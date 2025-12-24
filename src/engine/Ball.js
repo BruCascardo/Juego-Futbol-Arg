@@ -5,7 +5,7 @@ export default class Ball extends Entity {
         super(x, y, 14, 'white');
         this.mass = 0.8; // Heavier (was 0.5)
         this.elasticity = 0.5; // Less bounce (was 0.6)
-        this.friction = 0.955; // More air drag (was 0.96)
+        this.friction = 0.90; // Heavy Drag (was 0.92)
         
         this.angle = 0;
         this.angularVelocity = 0; // Radians per frame

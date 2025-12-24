@@ -1,6 +1,6 @@
 import { League } from './League.js';
 import Store from '../data/store.js';
-import { TEAMS } from '../data/teams.js';
+import { TEAMS } from '../data/teams.js?v=2';
 
 export default class Career {
     constructor() {
@@ -13,13 +13,39 @@ export default class Career {
     }
 
     // Start a fresh career
-    start(userTeamId, leagueATeams, leagueBTeams) {
+    start(userTeamId) {
         this.userTeamId = userTeamId;
         this.userTeam = TEAMS.find(t => t.id === userTeamId);
         this.currentSeasonYear = 2024;
 
-        this.leagueA = new League({ name: 'Liga Profesional', level: 1, teams: leagueATeams });
-        this.leagueB = new League({ name: 'Primera Nacional', level: 2, teams: leagueBTeams });
+        // Logic moved from View: Generate Leagues based on Rating
+        const sortedByRating = [...TEAMS].sort((a,b) => b.rating - a.rating);
+        let leagueA_Teams = sortedByRating.slice(0, 20);
+        let leagueB_Teams = sortedByRating.slice(20, 40);
+        
+        // Ensure user is in.
+        const userInA = leagueA_Teams.find(t => t.id === userTeamId);
+        const userInB = leagueB_Teams.find(t => t.id === userTeamId);
+        
+        if (!userInA && !userInB) {
+            // User is in the "left out" group (Tier C). Swap with last of B.
+            // But we actually need to put them in B to play.
+            leagueB_Teams.pop();
+            leagueB_Teams.push(this.userTeam);
+        }
+
+        this.leagueA = new League({ 
+            name: 'Liga Profesional', 
+            level: 1, 
+            teams: leagueA_Teams,
+            relegationCount: 3 
+        });
+        this.leagueB = new League({ 
+            name: 'Primera Nacional', 
+            level: 2, 
+            teams: leagueB_Teams,
+            promotionCount: 3
+        });
 
         this.leagueA.generateFixture();
         this.leagueB.generateFixture();
