@@ -1,6 +1,6 @@
-import Career from '../logic/Career.js';
-import Router from '../ui/Router.js';
-import * as Views from '../ui/Views.js';
+import Career from '../logic/Career.js?v=3';
+import Router from '../ui/Router.js?v=3';
+import * as Views from '../ui/Views.js?v=3';
 import MatchScene from '../engine/MatchScene.js';
 import Store from '../data/store.js';
 
@@ -33,8 +33,8 @@ export default class Game {
 
     showCareerSetup() {
         this.router.navigateTo(Views.CareerSetup, {
-            onStart: (teamId) => {
-                this.career.start(teamId);
+            onStart: (teamId, listA, listB, realistic) => {
+                this.career.start(teamId, listA, listB, realistic);
                 this.showDashboard();
             }
         });
@@ -54,7 +54,16 @@ export default class Game {
             nextMatch: nextMatch,
             currentSeason: this.career.currentSeasonYear,
             onPlayMatch: () => this.startMatch(nextMatch),
-            onNextWeek: () => this.nextSeason() // Only called if no match
+            onNextWeek: () => this.nextSeason(), // Only called if no match
+            onShowFixture: () => this.showFixtureView(userLeague)
+        });
+    }
+
+    showFixtureView(league) {
+        this.router.navigateTo(Views.FixtureView, {
+            league: league,
+            userTeamId: this.career.userTeamId,
+            onBack: () => this.showDashboard()
         });
     }
 
@@ -99,18 +108,15 @@ export default class Game {
         // User = Player 1 (Left). 
         // Rival = Player 2 (Right).
         
-        let userScore = score1;
-        let rivalScore = score2;
-        
-        // Apply to Career
-        let finalHomeScore, finalAwayScore;
-        
-        if (matchData.home.id === this.career.userTeamId) {
-            finalHomeScore = userScore;
-            finalAwayScore = rivalScore;
-        } else {
-            finalHomeScore = rivalScore; // User was away, so user score (score1) is AwayScore
-            finalAwayScore = userScore;
+        // MatchScene returns (homeScore, awayScore)
+        let finalHomeScore = score1;
+        let finalAwayScore = score2;
+
+        // Apply Realistic Results Logic if enabled (display AND persistence)
+        if (this.career.realisticResults) {
+            const minScore = Math.min(finalHomeScore, finalAwayScore);
+            finalHomeScore -= minScore;
+            finalAwayScore -= minScore;
         }
 
         this.career.advanceWeek(finalHomeScore, finalAwayScore);
@@ -119,6 +125,8 @@ export default class Game {
         this.router.navigateTo(Views.MatchResults, {
             homeScore: finalHomeScore,
             awayScore: finalAwayScore,
+            homeTeam: matchData.home,
+            awayTeam: matchData.away,
             onContinue: () => this.showDashboard()
         });
     }

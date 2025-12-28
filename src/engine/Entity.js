@@ -1,4 +1,4 @@
-export const GRAVITY = 0.5;
+export const GRAVITY = 0.35;
 export const FRICTION = 0.90;
 export const GROUND_Y = 400;
 

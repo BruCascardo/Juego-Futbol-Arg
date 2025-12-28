@@ -164,6 +164,10 @@ export class League {
 
     getStandingsArray() {
         return Object.values(this.standings).sort((a, b) => {
+            // If season hasn't started (played 0 for everyone), sort alphabetically
+            if (a.played === 0 && b.played === 0) {
+                return a.team.name.localeCompare(b.team.name);
+            }
             if (b.points !== a.points) return b.points - a.points;
             if (b.gd !== a.gd) return b.gd - a.gd;
             return b.gf - a.gf;

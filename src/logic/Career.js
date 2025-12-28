@@ -10,28 +10,36 @@ export default class Career {
         this.leagueA = null; // Primera
         this.leagueB = null; // Nacional B
         this.history = []; // { year: 2024, championA: '...', championB: '...' }
+        this.realisticResults = false;
     }
 
     // Start a fresh career
-    start(userTeamId) {
+    start(userTeamId, customLeagueA_Ids = null, customLeagueB_Ids = null, realistic = false) {
         this.userTeamId = userTeamId;
         this.userTeam = TEAMS.find(t => t.id === userTeamId);
         this.currentSeasonYear = 2024;
+        this.realisticResults = realistic;
 
-        // Logic moved from View: Generate Leagues based on Rating
-        const sortedByRating = [...TEAMS].sort((a,b) => b.rating - a.rating);
-        let leagueA_Teams = sortedByRating.slice(0, 20);
-        let leagueB_Teams = sortedByRating.slice(20, 40);
-        
-        // Ensure user is in.
-        const userInA = leagueA_Teams.find(t => t.id === userTeamId);
-        const userInB = leagueB_Teams.find(t => t.id === userTeamId);
-        
-        if (!userInA && !userInB) {
-            // User is in the "left out" group (Tier C). Swap with last of B.
-            // But we actually need to put them in B to play.
-            leagueB_Teams.pop();
-            leagueB_Teams.push(this.userTeam);
+        let leagueA_Teams, leagueB_Teams;
+
+        if (customLeagueA_Ids && customLeagueB_Ids) {
+            // Manual Composition
+            leagueA_Teams = customLeagueA_Ids.map(id => TEAMS.find(t => t.id === id));
+            leagueB_Teams = customLeagueB_Ids.map(id => TEAMS.find(t => t.id === id));
+        } else {
+            // Default: Auto-Generate based on Rating (Legacy fallback)
+            const sortedByRating = [...TEAMS].sort((a,b) => b.rating - a.rating);
+            leagueA_Teams = sortedByRating.slice(0, 20);
+            leagueB_Teams = sortedByRating.slice(20, 40);
+            
+            // Ensure user is in.
+            const userInA = leagueA_Teams.find(t => t.id === userTeamId);
+            const userInB = leagueB_Teams.find(t => t.id === userTeamId);
+            
+            if (!userInA && !userInB) {
+                leagueB_Teams.pop();
+                leagueB_Teams.push(this.userTeam);
+            }
         }
 
         this.leagueA = new League({ 
@@ -61,6 +69,7 @@ export default class Career {
         this.userTeam = TEAMS.find(t => t.id === this.userTeamId);
         this.currentSeasonYear = data.currentSeasonYear;
         this.history = data.history || [];
+        this.realisticResults = data.realisticResults || false;
 
         // Reconstruct League objects
         this.leagueA = new League({ name: data.leagueA.name, level: 1, teams: data.leagueA.teams });
@@ -82,6 +91,7 @@ export default class Career {
             userTeamId: this.userTeamId,
             currentSeasonYear: this.currentSeasonYear,
             history: this.history,
+            realisticResults: this.realisticResults,
             leagueA: {
                 name: this.leagueA.name,
                 teams: this.leagueA.teams,
@@ -124,6 +134,8 @@ export default class Career {
     advanceWeek(userScoreHome, userScoreAway) {
         const userLeague = this.getUserLeague();
         const otherLeague = userLeague === this.leagueA ? this.leagueB : this.leagueA;
+
+
 
         // 1. Resolve User Match
         const userMatch = this.getCurrentUserMatch();

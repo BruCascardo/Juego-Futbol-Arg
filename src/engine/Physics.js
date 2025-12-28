@@ -17,9 +17,16 @@ export default class PhysicsEngine {
         const lenSq = lx*lx + ly*ly;
         
         // Check if circle is within X bounds (plus radius buffer) broadly first
+        // Comprobación rápida en X **y** Y para evitar colisiones falsas
         const minX = Math.min(x1, x2) - circle.radius;
         const maxX = Math.max(x1, x2) + circle.radius;
-        if (circle.x < minX || circle.x > maxX) return;
+        const minY = Math.min(y1, y2) - circle.radius;
+        const maxY = Math.max(y1, y2) + circle.radius;
+        if (circle.x < minX || circle.x > maxX || circle.y < minY || circle.y > maxY) {
+            return;
+        }
+
+
 
         // Project Circle center onto Line
         // P = (cx-x1, cy-y1)

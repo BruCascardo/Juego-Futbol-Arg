@@ -19,6 +19,7 @@ export default class MatchScene {
         this.isPlayerHome = isPlayerHome;
         
         this.lastScorerName = '';
+        this.lastScorerSide = 0; // 0=None, 1=Home, -1=Away
 
         // Subsystems
         this.physics = new PhysicsEngine(this.width, this.height);
@@ -40,7 +41,7 @@ export default class MatchScene {
         this.score1 = 0;
         this.score2 = 0;
         
-        this.timeLeft = 90; 
+        this.timeLeft = 60; 
         this.gameTime = 0;
         this.isRunning = false;
         
@@ -139,6 +140,7 @@ export default class MatchScene {
             this.score2++;
             this.goalOverlayTimer = 2; 
             this.lastScorerName = this.awayTeam.name;
+            this.lastScorerSide = -1; // Away scored
         }
 
         // Right Goal (Player 1 scores)
@@ -146,14 +148,41 @@ export default class MatchScene {
             this.score1++;
             this.goalOverlayTimer = 2; 
             this.lastScorerName = this.homeTeam.name;
+            this.lastScorerSide = 1; // Home scored
         }
     }
 
     resetPositions() {
         this.ball.x = 400;
-        this.ball.y = 200;
+        
+        // Randomize: Rolling vs Bouncing
+        // 50% chance to start on ground (rolling)
+        // 50% chance to start in air (bouncing)
+        const isRolling = Math.random() < 0.5;
+        
+        if (isRolling) {
+            this.ball.y = GROUND_Y - this.ball.radius - 1; // On Ground
+            this.ball.vy = 0;
+        } else {
+             this.ball.y = 200; // In Air
+             this.ball.vy = 0; // Gravity will do the rest
+        }
+        
+        // Kickoff Logic: Roll towards the team that conceded
         this.ball.vx = 0;
-        this.ball.vy = 0;
+        let kickSpeed = 3.5; 
+        if (isRolling) kickSpeed = 8.5; // Needs higher speed to overcome constant ground friction
+
+        if (this.lastScorerSide === 1) { // Home scored
+            this.ball.vx = kickSpeed; // Roll Right (To Away)
+        } else if (this.lastScorerSide === -1) { // Away scored
+            this.ball.vx = -kickSpeed; // Roll Left (To Home)
+        } else {
+             // Start of match: Always drop from air in center
+             this.ball.y = 200;
+             this.ball.vy = 0;
+        }
+        this.lastScorerSide = 0; // Reset
         
         this.player1.x = 150;
         this.player1.y = 300;
